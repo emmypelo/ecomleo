@@ -3,6 +3,7 @@
 import type React from "react";
 
 import { useState } from "react";
+import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -17,18 +18,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, CheckCircle } from "lucide-react";
 
-export default function Register() {
+export default function Login() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
   const [formData, setFormData] = useState({
-    firstname: "",
-    lastname: "",
-    email: "",
+    email: "emmypeloguns@gmail.com",
     password: "12345678",
-    confirmPassword: "12345678",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,41 +33,48 @@ export default function Register() {
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
+
+    // Basic validation
+    if (!formData.email || !formData.password) {
+      setError("Email and password are required");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      const res = await signIn("credentials", {
+        redirect: false,
+        email: formData.email,
+        password: formData.password,
       });
 
-      const data = await res.json().catch(() => {
-        throw new Error("Invalid server response");
-      });
+      if (!res) {
+        throw new Error("No response from authentication provider");
+      }
 
-      if (res.ok) {
-        setSuccess(data.message || "Registration successful!");
+      if (res.error) {
+        setError(res.error || "Login failed. Please check your credentials.");
+      } else {
+        setSuccess("Login successful!");
+
+        // Reset form
         setFormData({
-          firstname: "",
-          lastname: "",
           email: "",
           password: "",
-          confirmPassword: "",
         });
 
+        // Redirect to dashboard after successful login
         setTimeout(() => {
-          router.push("/login");
-        }, 2000);
-      } else {
-        setError(data.message || "Registration failed. Please try again.");
+          router.push("/dashboard");
+        }, 1500);
       }
     } catch (error) {
-      console.error("Registration error:", error);
+      console.error("Login error:", error);
       setError("An unexpected error occurred. Please try again later.");
     } finally {
       setIsLoading(false);
@@ -82,10 +86,10 @@ export default function Register() {
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
-            Create an account
+            Login to your account
           </CardTitle>
           <CardDescription className="text-center">
-            Enter your information to register
+            Enter your credentials to access your account
           </CardDescription>
         </CardHeader>
 
@@ -110,35 +114,17 @@ export default function Register() {
             </div>
           )}
 
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstname">First Name</Label>
-              <Input
-                id="firstname"
-                value={formData.firstname}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="lastname">Last Name</Label>
-              <Input
-                id="lastname"
-                value={formData.lastname}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-            </div>
-
+          <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
+                placeholder="your.email@example.com"
                 value={formData.email}
                 onChange={handleChange}
                 disabled={isLoading}
+                required
               />
             </div>
 
@@ -147,21 +133,22 @@ export default function Register() {
               <Input
                 id="password"
                 type="password"
+                placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
                 disabled={isLoading}
+                required
+                minLength={8}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
+            <div className="flex justify-end">
+              <a
+                href="/forgot-password"
+                className="text-sm text-gray-600 hover:text-black hover:underline"
+              >
+                Forgot password?
+              </a>
             </div>
 
             <Button
@@ -169,16 +156,16 @@ export default function Register() {
               type="submit"
               disabled={isLoading}
             >
-              {isLoading ? "Creating Account..." : "Create Account"}
+              {isLoading ? "Logging in..." : "Log in"}
             </Button>
           </form>
         </CardContent>
 
         <CardFooter className="flex justify-center">
           <p className="text-sm text-gray-500">
-            Already have an account?{" "}
-            <a href="/login" className="text-black hover:underline">
-              Sign in
+            Don't have an account?{" "}
+            <a href="/register" className="text-black hover:underline">
+             Register
             </a>
           </p>
         </CardFooter>

@@ -85,13 +85,7 @@ const userSchema = new Schema<IUser>(
 );
 
 // Index for faster queries
-userSchema.index({ email: 1 });
-userSchema.index({ provider: 1, providerAccountId: 1 });
 
-// Virtual for full name
-userSchema.virtual("fullName").get(function (this: IUser) {
-  return `${this.firstname} ${this.lastname}`;
-});
 
 // Helper method to check if user is from OAuth
 userSchema.methods.isOAuthUser = function (this: IUser): boolean {
